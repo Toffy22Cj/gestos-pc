@@ -187,6 +187,38 @@
             border-bottom: 1px solid var(--border);
         }
 
+        /* Debug Console */
+        .debug-console {
+            background: rgba(0,0,0,0.5);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1rem;
+            font-family: monospace;
+            font-size: 0.85rem;
+            color: #4ade80;
+            height: 200px;
+            overflow-y: auto;
+            margin-top: 1rem;
+        }
+
+        .debug-console p {
+            margin: 0 0 0.4rem 0;
+            border-bottom: 1px dashed rgba(255,255,255,0.05);
+            padding-bottom: 0.2rem;
+        }
+
+        .current-detection {
+            display: inline-block;
+            background: rgba(59, 130, 246, 0.2);
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            color: #60a5fa;
+            font-weight: bold;
+            font-size: 1.1rem;
+            margin-bottom: 1rem;
+            border: 1px solid rgba(59, 130, 246, 0.4);
+        }
+
         /* Responsive */
         @media (max-width: 900px) {
             .container { grid-template-columns: 1fr; }
@@ -206,12 +238,21 @@
                 <h2>Cámara en Vivo</h2>
                 <div id="statusBadge" class="status-indicator">OFFLINE</div>
             </div>
+            
+            <div class="current-detection">Gesto Actual: <span id="lblGestoActual">Inactivo</span></div>
+
             <div class="video-container">
                 <img id="videoFeed" src="" alt="Cámara Detenida">
             </div>
+            
             <div style="margin-top: 1.5rem; display: flex; gap: 1rem;">
                 <button class="btn" onclick="startEngine()">▶ Iniciar Motor</button>
                 <button class="btn btn-danger" onclick="stopEngine()">⏹ Detener</button>
+            </div>
+            
+            <h3 style="margin-top:2rem">Consola de Eventos</h3>
+            <div id="debugConsole" class="debug-console">
+                <!-- Logs from server -->
             </div>
         </div>
 
@@ -248,7 +289,19 @@
                 badge.textContent = "OFFLINE";
                 badge.className = "status-indicator";
                 feed.src = "";
+                document.getElementById('lblGestoActual').textContent = "Inactivo";
             }
+        }
+
+        async function updateDebug() {
+            const res = await fetch(`${API}/debug_logs`);
+            const data = await res.json();
+            
+            document.getElementById('lblGestoActual').textContent = data.last_gesture || "Ninguno";
+            
+            const consoleDiv = document.getElementById('debugConsole');
+            consoleDiv.innerHTML = data.logs.map(log => `<p>${log}</p>`).join('');
+            consoleDiv.scrollTop = consoleDiv.scrollHeight; // Auto-scroll
         }
 
         async function startEngine() {
@@ -326,6 +379,7 @@
         }
 
         setInterval(updateStatus, 2000);
+        setInterval(updateDebug, 1000); // Poll de los logs y del gesto cada segundo
         updateStatus();
         loadMappings();
     </script>

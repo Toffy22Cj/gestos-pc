@@ -60,6 +60,13 @@ def remove_mapping(gesture_name):
         return jsonify({"status": "success"})
     return jsonify({"status": "error", "message": "Gesto no encontrado"}), 404
 
+@app.route('/api/debug_logs', methods=['GET'])
+def get_debug_logs():
+    return jsonify({
+        "last_gesture": controller_instance.last_detected_gesture,
+        "logs": list(controller_instance.action_logs)
+    })
+
 def gen_frames():
     while True:
         if not controller_instance.is_running:

@@ -16,8 +16,11 @@ class GestureController:
     def __init__(self):
         self.is_running = False
         self.cap = None
-        self.thread = None
         self.current_frame = None
+        
+        # Variables de Debug/Logs para la Web UI
+        self.last_detected_gesture = "Ninguno"
+        self.action_logs = deque(maxlen=20) # Guardar últimos 20 eventos
         
         # Ejecutores y Extractores
         self.executor = get_executor()
@@ -121,8 +124,11 @@ class GestureController:
                 current_gesture = self.face_extractor.get_gesture(first_face)
                 
             if current_gesture:
+                self.last_detected_gesture = current_gesture
                 cv2.putText(image, current_gesture, (20, 50), 
                             cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2, cv2.LINE_AA)
+            else:
+                self.last_detected_gesture = "Ninguno"
                             
             # Ejecutor
             current_time = time.time()
@@ -149,6 +155,9 @@ class GestureController:
                         else: cmd = mapping.command_generic
                         
                         if cmd:
+                            timestamp = time.strftime("%H:%M:%S")
+                            log_msg = f"[{timestamp}] {current_gesture} -> {cmd}"
+                            self.action_logs.append(log_msg)
                             logger.info(f"UI Executing ({'Dynamic' if is_dynamic else 'Static'}): {cmd}")
                             self.executor.execute(cmd)
                             
