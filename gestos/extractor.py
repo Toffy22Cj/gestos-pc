@@ -29,6 +29,9 @@ class HandFeatureExtractor:
         # Historial para suavizado (debouncing)
         self.history = deque(maxlen=history_length)
         
+        # Historial de posiciones de la muñeca para Gestos Dinámicos (Swipes)
+        self.wrist_history = deque(maxlen=history_length)
+        
         # Carga del modelo ML Customizado (si existe)
         self.ml_model = None
         model_path = Path(__file__).parent.parent / "custom_gesture_model.pkl"
@@ -111,6 +114,44 @@ class HandFeatureExtractor:
             raw_gesture = "APUNTAR"
         elif not index_closed and not middle_closed and ring_closed and pinky_closed:
             raw_gesture = "PAZ"
+            
+        # 3. Lógica de Gestos Dinámicos (Swipes)
+        # Añadimos la muñeca al historial
+        self.wrist_history.append((wrist.x, wrist.y))
+        
+        # Requerimos el buffer lleno para ver la diferencia de tiempo
+        if len(self.wrist_history) == self.wrist_history.maxlen:
+            old_x, old_y = self.wrist_history[0]
+            new_x, new_y = self.wrist_history[-1]
+            
+            dx = new_x - old_x
+            dy = new_y - old_y
+            
+            # Umbral de movimiento para considerar que hubo un "Swipe" real
+            SWIPE_THRESHOLD = 0.15 
+            
+            if abs(dx) > SWIPE_THRESHOLD or abs(dy) > SWIPE_THRESHOLD:
+                # Determinar el eje predominante
+                if abs(dx) > abs(dy):
+                    # Movimiento horizontal
+                    # X crece hacia la derecha en la imagen de MediaPipe, 
+                    # pero como se hace flip en OpenCV, visualmente puede estar invertido.
+                    # MediaPipe ya entrega coords relativas a la imagen de entrada. 
+                    if dx > 0:
+                        raw_gesture = "SWIPE_DERECHO"
+                    else:
+                        raw_gesture = "SWIPE_IZQUIERDO"
+                else:
+                    # Movimiento vertical
+                    # Y crece hacia abajo (0 arriba, 1 abajo)
+                    if dy > 0:
+                        raw_gesture = "SWIPE_ABAJO"
+                    else:
+                        raw_gesture = "SWIPE_ARRIBA"
+                        
+                # Si hicimos swipe, limpiamos la historia para no mandar
+                # múltiples swipes seguidos durante la frenada de la mano
+                self.wrist_history.clear()
             
         return self._smooth_gesture(raw_gesture)
 

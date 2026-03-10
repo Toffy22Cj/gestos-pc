@@ -52,6 +52,17 @@ def add_or_update_mapping(gesture_name: str, hyprland=None, windows=None, generi
         session.commit()
         logger.info(f"Mapeo guardado: {gesture_name}")
 
+def delete_mapping(gesture_name: str) -> bool:
+    """Elimina un mapeo de gesto. Devuelve True si fue eliminado."""
+    with SessionLocal() as session:
+        mapping = session.query(GestureMapping).filter_by(gesture_name=gesture_name).first()
+        if mapping:
+            session.delete(mapping)
+            session.commit()
+            logger.info(f"Mapeo eliminado: {gesture_name}")
+            return True
+        return False
+
 def init_default_mappings():
     """Inicializa la base de datos con los mapeos por defecto si está vacía."""
     with SessionLocal() as session:
